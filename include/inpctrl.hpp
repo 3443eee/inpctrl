@@ -24,6 +24,7 @@ Features:
 ----------
 - Check if a key is currently pressed.
 - Press, hold, and release keyboard keys.
+- Type text strings with automatic character mapping.
 - Move the mouse relative to its current position.
 - Map between human-readable keys and system key codes.
 - Thread-safe key state tracking.
@@ -47,6 +48,9 @@ int main() {
 
     // Press and release the 'A' key
     input.pressKey(CrossInput::Key::A);
+
+    // Type a string
+    input.typeText("Hello World!");
 
     // Move mouse 100 pixels right and 50 pixels down
     input.moveMouse(100, 50);
@@ -80,6 +84,7 @@ Notes:
 #include <iostream>
 
 #ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN 
     #include <windows.h>
 #else
     #include <linux/input-event-codes.h>
@@ -126,7 +131,62 @@ public:
         Mouse4 = 0x05, Mouse5 = 0x06,
         
         // Brackets
-        LeftBracket = 0xDB, RightBracket = 0xDD
+        LeftBracket = 0xDB, RightBracket = 0xDD,
+
+        //Other
+        Slash = 0xBF,
+        Semicolon = 0xBA,  // QWERTY ';' key
+        Colon = 0xBA,       // Use same physical key, send with shift
+        Exclamation = 0x31,    // 1 + Shift
+        At = 0x32,             // 2 + Shift
+        Hash = 0x33,           // 3 + Shift
+        Dollar = 0x34,         // 4 + Shift
+        Percent = 0x35,        // 5 + Shift
+        Caret = 0x36,          // 6 + Shift
+        Ampersand = 0x37,      // 7 + Shift
+        Asterisk = 0x38,       // 8 + Shift
+        LeftParen = 0x39,      // 9 + Shift
+        RightParen = 0x30,     // 0 + Shift
+        Minus = 0xBD,          // - key
+        Underscore = 0xBD,     // - + Shift
+        Equal = 0xBB,          // = key
+        Plus = 0xBB,           // = + Shift
+        Backslash = 0xDC,      // \ key
+        Pipe = 0xDC,           // \ + Shift
+        Quote = 0xDE,          // ' key
+        DoubleQuote = 0xDE,    // ' + Shift
+        Comma = 0xBC,          // , key
+        Less = 0xBC,           // , + Shift
+        Dot = 0xBE,            // . key
+        Greater = 0xBE,        // . + Shift
+        Grave = 0xC0,          // ` key
+        Tilde = 0xC0,          // ` + Shift
+
+        // AZERTY-specific (physical keys)
+        AZ_Slash = 0xBF,       // / key on AZERTY
+        AZ_Colon = 0xBA,       // : key on AZERTY (next to !)
+        AZ_Exclamation = 0x31, // ! key
+        AZ_At = 0x33,          // @ key
+        AZ_Hash = 0x34,        // # key
+        // Navigation keys
+        Home = 0x24, End = 0x23, PageUp = 0x21, PageDown = 0x22,
+
+        // Numpad keys
+        Numpad0 = 0x60, Numpad1 = 0x61, Numpad2 = 0x62, Numpad3 = 0x63,
+        Numpad4 = 0x64, Numpad5 = 0x65, Numpad6 = 0x66, Numpad7 = 0x67,
+        Numpad8 = 0x68, Numpad9 = 0x69,
+        NumpadMultiply = 0x6A, NumpadAdd = 0x6B, NumpadSubtract = 0x6D,
+        NumpadDecimal = 0x6E, NumpadDivide = 0x6F,
+
+        // Lock keys
+        CapsLock = 0x14, NumLock = 0x90, ScrollLock = 0x91,
+
+        // System keys
+        PrintScreen = 0x2C, Pause = 0x13,
+
+        // Windows/Super key
+        LWin = 0x5B, RWin = 0x5C,
+
     };
 
     CrossInput() : m_running(false), m_initialized(false) {
@@ -210,6 +270,13 @@ public:
         releaseKey(key);
     }
 
+    // Type a string of text
+    void typeText(const std::string& text, int delayBetweenKeys = 30) {
+        for (char c : text) {
+            typeChar(c, delayBetweenKeys);
+        }
+    }
+
     // Move mouse relative to current position
     void moveMouse(int dx, int dy) {
 #ifdef _WIN32
@@ -229,18 +296,54 @@ public:
             {0x4B, "K"}, {0x4C, "L"}, {0x4D, "M"}, {0x4E, "N"}, {0x4F, "O"},
             {0x50, "P"}, {0x51, "Q"}, {0x52, "R"}, {0x53, "S"}, {0x54, "T"},
             {0x55, "U"}, {0x56, "V"}, {0x57, "W"}, {0x58, "X"}, {0x59, "Y"},
-            {0x5A, "Z"}, {0x20, "Space"}, {0x0D, "Enter"}, {0x09, "Tab"},
-            {0x1B, "Escape"}, {0x70, "F1"}, {0x71, "F2"}, {0x72, "F3"},
+            {0x5A, "Z"}, 
+            {0x30, "0"}, {0x31, "1"}, {0x32, "2"}, {0x33, "3"}, {0x34, "4"},
+            {0x35, "5"}, {0x36, "6"}, {0x37, "7"}, {0x38, "8"}, {0x39, "9"},
+            {0x20, "Space"}, {0x0D, "Enter"}, {0x09, "Tab"},
+            {0x1B, "Escape"}, {0x08, "Backspace"}, {0x2E, "Delete"}, {0x2D, "Insert"},
+            {0x70, "F1"}, {0x71, "F2"}, {0x72, "F3"},
             {0x73, "F4"}, {0x74, "F5"}, {0x75, "F6"}, {0x76, "F7"},
             {0x77, "F8"}, {0x78, "F9"}, {0x79, "F10"}, {0x7A, "F11"},
-            {0x7B, "F12"}, {0xDB, "["}, {0xDD, "]"}, {0x01, "LMB"},
-            {0x02, "RMB"}, {0x04, "MMB"}, {0xA0, "LShift"}, {0xA2, "LCtrl"}
+            {0x7B, "F12"}, 
+            {0xDB, "["}, {0xDD, "]"}, 
+            {0xBF, "/"}, {0xBA, ";"}, 
+            {0xBD, "-"}, {0xBB, "="}, {0xDC, "\\"}, 
+            {0xDE, "'"}, {0xBC, ","}, {0xBE, "."}, {0xC0, "`"},
+            {0x25, "Left"}, {0x26, "Up"}, {0x27, "Right"}, {0x28, "Down"},
+            {0xA0, "LShift"}, {0xA1, "RShift"}, 
+            {0xA2, "LCtrl"}, {0xA3, "RCtrl"},
+            {0xA4, "LAlt"}, {0xA5, "RAlt"},
+            // Mouse buttons
+            {0x01, "LMB"}, {0x02, "RMB"}, {0x04, "MMB"},
+            {0x05, "Mouse4"}, {0x06, "Mouse5"}, // Navigation keys
+            {0x24, "Home"}, {0x23, "End"}, {0x21, "PageUp"}, {0x22, "PageDown"},
+            // Numpad
+            {0x60, "Numpad0"}, {0x61, "Numpad1"}, {0x62, "Numpad2"}, {0x63, "Numpad3"},
+            {0x64, "Numpad4"}, {0x65, "Numpad5"}, {0x66, "Numpad6"}, {0x67, "Numpad7"},
+            {0x68, "Numpad8"}, {0x69, "Numpad9"},
+            {0x6A, "Numpad*"}, {0x6B, "Numpad+"}, {0x6D, "Numpad-"},
+            {0x6E, "Numpad."}, {0x6F, "Numpad/"},
+            // Lock keys
+            {0x14, "CapsLock"}, {0x90, "NumLock"}, {0x91, "ScrollLock"},
+            // System keys
+            {0x2C, "PrintScreen"}, {0x13, "Pause"},
+            // Windows key
+            {0x5B, "LWin"}, {0x5C, "RWin"},
         };
         
         if (names.count(code)) {
             return names[code];
         }
         return "Unknown";
+    }
+
+    //A function that gets the current pressed key.
+    Key getCurrentPressedKey(int timeout_ms = 0) {
+#ifdef _WIN32
+        return getCurrentPressedKeyWindows(timeout_ms);
+#else
+        return getCurrentPressedKeyLinux(timeout_ms);
+#endif
     }
 
 private:
@@ -250,11 +353,20 @@ private:
     std::atomic<bool> m_running;
     bool m_initialized;
 
+    // Type a single character
+    void typeChar(char c, int delayMs = 30) {
+#ifdef _WIN32
+        typeCharWindows(c, delayMs);
+#else
+        typeCharLinux(c, delayMs);
+#endif
+    }
+
 #ifdef _WIN32
     // ==================== WINDOWS IMPLEMENTATION ====================
     HHOOK m_hookHandle;
     
-    static CrossInput* s_instance;
+    static CrossInput* s_instance;  // Declaration only
     
     static LRESULT CALLBACK keyboardHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
         if (nCode == HC_ACTION && s_instance) {
@@ -322,16 +434,34 @@ private:
     void holdKeyWindows(unsigned int vkCode) {
         INPUT input = {0};
         input.type = INPUT_KEYBOARD;
-        input.ki.wVk = vkCode;
-        input.ki.dwFlags = 0;
+        
+        // For the slash key (and other OEM keys), use scan code
+        if (vkCode == 0xBF) {  // VK_OEM_2 (slash key)
+            input.ki.wScan = 0x35;  // Hardware scan code for /
+            input.ki.dwFlags = KEYEVENTF_SCANCODE;
+        } else {
+            input.ki.wVk = vkCode;
+            input.ki.wScan = MapVirtualKey(vkCode, MAPVK_VK_TO_VSC);
+            input.ki.dwFlags = 0;
+        }
+        
         SendInput(1, &input, sizeof(INPUT));
     }
-    
+
     void releaseKeyWindows(unsigned int vkCode) {
         INPUT input = {0};
         input.type = INPUT_KEYBOARD;
-        input.ki.wVk = vkCode;
-        input.ki.dwFlags = KEYEVENTF_KEYUP;
+        
+        // For the slash key (and other OEM keys), use scan code
+        if (vkCode == 0xBF) {  // VK_OEM_2 (slash key)
+            input.ki.wScan = 0x35;  // Hardware scan code for /
+            input.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
+        } else {
+            input.ki.wVk = vkCode;
+            input.ki.wScan = MapVirtualKey(vkCode, MAPVK_VK_TO_VSC);
+            input.ki.dwFlags = KEYEVENTF_KEYUP;
+        }
+        
         SendInput(1, &input, sizeof(INPUT));
     }
     
@@ -344,6 +474,73 @@ private:
         SendInput(1, &input, sizeof(INPUT));
     }
 
+    void typeCharWindows(char c, int delayMs) {
+        // Convert char to virtual key and shift state
+        SHORT vk = VkKeyScanA(c);
+        if (vk == -1) {
+            // Character not available in current keyboard layout
+            std::cerr << "Character '" << c << "' not available in keyboard layout" << std::endl;
+            return;
+        }
+        
+        BYTE keyCode = LOBYTE(vk);
+        BYTE shiftState = HIBYTE(vk);
+        
+        // Press shift if needed
+        bool needShift = (shiftState & 1);
+        bool needCtrl = (shiftState & 2);
+        bool needAlt = (shiftState & 4);
+        
+        if (needShift) holdKeyWindows(VK_SHIFT);
+        if (needCtrl) holdKeyWindows(VK_CONTROL);
+        if (needAlt) holdKeyWindows(VK_MENU);
+        
+        // Press the key
+        holdKeyWindows(keyCode);
+        std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
+        releaseKeyWindows(keyCode);
+        
+        // Release modifiers
+        if (needAlt) releaseKeyWindows(VK_MENU);
+        if (needCtrl) releaseKeyWindows(VK_CONTROL);
+        if (needShift) releaseKeyWindows(VK_SHIFT);
+    }
+
+    Key getCurrentPressedKeyWindows(int timeout_ms) {
+        auto startTime = std::chrono::steady_clock::now();
+        
+        do {
+            // Check all possible virtual key codes
+            for (unsigned int vk = 0x01; vk <= 0xFE; vk++) {
+                // Check if key is pressed
+                if (GetAsyncKeyState(vk) & 0x8000) {
+                    // Wait for key to be released before returning
+                    while (GetAsyncKeyState(vk) & 0x8000) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    }
+                    return static_cast<Key>(vk);
+                }
+            }
+            
+            if (timeout_ms == 0) {
+                break; // No wait, check once
+            }
+            
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            
+            if (timeout_ms > 0) {
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now() - startTime
+                ).count();
+                if (elapsed >= timeout_ms) {
+                    break;
+                }
+            }
+            
+        } while (timeout_ms != 0);
+        
+        return static_cast<Key>(0); // No key pressed
+    }
 #else
     // ==================== LINUX IMPLEMENTATION ====================
     int m_uinputFd;
@@ -353,8 +550,8 @@ private:
         // Initialize uinput for output
         m_uinputFd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
         if (m_uinputFd < 0) {
-            std::cerr << "Failed to open /dev/uinput. Run with sudo!" << std::endl;
-            return false;
+            std::cout << "Failed to open /dev/uinput. Run with sudo!" << std::endl;
+            return true;
         }
         
         struct uinput_setup setup;
@@ -371,6 +568,13 @@ private:
             ioctl(m_uinputFd, UI_SET_KEYBIT, i);
         }
         
+        // Enable mouse button events
+        ioctl(m_uinputFd, UI_SET_KEYBIT, BTN_LEFT);
+        ioctl(m_uinputFd, UI_SET_KEYBIT, BTN_RIGHT);
+        ioctl(m_uinputFd, UI_SET_KEYBIT, BTN_MIDDLE);
+        ioctl(m_uinputFd, UI_SET_KEYBIT, BTN_SIDE);
+        ioctl(m_uinputFd, UI_SET_KEYBIT, BTN_EXTRA);
+
         // Enable mouse movement
         ioctl(m_uinputFd, UI_SET_EVBIT, EV_REL);
         ioctl(m_uinputFd, UI_SET_RELBIT, REL_X);
@@ -423,10 +627,27 @@ private:
         while (m_running) {
             for (int fd : m_inputFds) {
                 ssize_t n = read(fd, &ev, sizeof(ev));
-                if (n == sizeof(ev) && ev.type == EV_KEY) {
-                    unsigned int winCode = fromEvdevCode(ev.code);
-                    std::lock_guard<std::mutex> lock(m_keyMutex);
-                    m_keyStates[winCode] = (ev.value != 0);
+                if (n == sizeof(ev)) {
+                    // Handle keyboard events
+                    if (ev.type == EV_KEY && ev.code < 256) {
+                        unsigned int winCode = fromEvdevCode(ev.code);
+                        std::lock_guard<std::mutex> lock(m_keyMutex);
+                        m_keyStates[winCode] = (ev.value != 0);
+                    }
+                    // Handle mouse button events
+                    else if (ev.type == EV_KEY) {
+                        unsigned int winCode = 0;
+                        if (ev.code == BTN_LEFT) winCode = 0x01;       // LMB
+                        else if (ev.code == BTN_RIGHT) winCode = 0x02; // RMB
+                        else if (ev.code == BTN_MIDDLE) winCode = 0x04; // MMB
+                        else if (ev.code == BTN_SIDE) winCode = 0x05;   // Mouse4
+                        else if (ev.code == BTN_EXTRA) winCode = 0x06;  // Mouse5
+                        
+                        if (winCode != 0) {
+                            std::lock_guard<std::mutex> lock(m_keyMutex);
+                            m_keyStates[winCode] = (ev.value != 0);
+                        }
+                    }
                 }
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -463,6 +684,98 @@ private:
         emitEvent(EV_REL, REL_X, dx);
         emitEvent(EV_REL, REL_Y, dy);
     }
+
+    void typeCharLinux(char c, int delayMs) {
+        // Map of common ASCII characters to their Linux key codes and shift requirements
+        struct KeyMapping {
+            unsigned int keyCode;
+            bool needShift;
+        };
+        
+        static std::unordered_map<char, KeyMapping> charMap = {
+            // Lowercase letters
+            {'a', {KEY_A, false}}, {'b', {KEY_B, false}}, {'c', {KEY_C, false}},
+            {'d', {KEY_D, false}}, {'e', {KEY_E, false}}, {'f', {KEY_F, false}},
+            {'g', {KEY_G, false}}, {'h', {KEY_H, false}}, {'i', {KEY_I, false}},
+            {'j', {KEY_J, false}}, {'k', {KEY_K, false}}, {'l', {KEY_L, false}},
+            {'m', {KEY_M, false}}, {'n', {KEY_N, false}}, {'o', {KEY_O, false}},
+            {'p', {KEY_P, false}}, {'q', {KEY_Q, false}}, {'r', {KEY_R, false}},
+            {'s', {KEY_S, false}}, {'t', {KEY_T, false}}, {'u', {KEY_U, false}},
+            {'v', {KEY_V, false}}, {'w', {KEY_W, false}}, {'x', {KEY_X, false}},
+            {'y', {KEY_Y, false}}, {'z', {KEY_Z, false}},
+            
+            // Uppercase letters
+            {'A', {KEY_A, true}}, {'B', {KEY_B, true}}, {'C', {KEY_C, true}},
+            {'D', {KEY_D, true}}, {'E', {KEY_E, true}}, {'F', {KEY_F, true}},
+            {'G', {KEY_G, true}}, {'H', {KEY_H, true}}, {'I', {KEY_I, true}},
+            {'J', {KEY_J, true}}, {'K', {KEY_K, true}}, {'L', {KEY_L, true}},
+            {'M', {KEY_M, true}}, {'N', {KEY_N, true}}, {'O', {KEY_O, true}},
+            {'P', {KEY_P, true}}, {'Q', {KEY_Q, true}}, {'R', {KEY_R, true}},
+            {'S', {KEY_S, true}}, {'T', {KEY_T, true}}, {'U', {KEY_U, true}},
+            {'V', {KEY_V, true}}, {'W', {KEY_W, true}}, {'X', {KEY_X, true}},
+            {'Y', {KEY_Y, true}}, {'Z', {KEY_Z, true}},
+            
+            // Numbers
+            {'0', {KEY_0, false}}, {'1', {KEY_1, false}}, {'2', {KEY_2, false}},
+            {'3', {KEY_3, false}}, {'4', {KEY_4, false}}, {'5', {KEY_5, false}},
+            {'6', {KEY_6, false}}, {'7', {KEY_7, false}}, {'8', {KEY_8, false}},
+            {'9', {KEY_9, false}},
+            
+            // Shifted numbers (symbols)
+            {'!', {KEY_1, true}}, {'@', {KEY_2, true}}, {'#', {KEY_3, true}},
+            {'$', {KEY_4, true}}, {'%', {KEY_5, true}}, {'^', {KEY_6, true}},
+            {'&', {KEY_7, true}}, {'*', {KEY_8, true}}, {'(', {KEY_9, true}},
+            {')', {KEY_0, true}},
+            
+            // Special characters
+            {' ', {KEY_SPACE, false}}, {'\n', {KEY_ENTER, false}}, {'\t', {KEY_TAB, false}},
+            {'-', {KEY_MINUS, false}}, {'_', {KEY_MINUS, true}},
+            {'=', {KEY_EQUAL, false}}, {'+', {KEY_EQUAL, true}},
+            {'[', {KEY_LEFTBRACE, false}}, {'{', {KEY_LEFTBRACE, true}},
+            {']', {KEY_RIGHTBRACE, false}}, {'}', {KEY_RIGHTBRACE, true}},
+            {'\\', {KEY_BACKSLASH, false}}, {'|', {KEY_BACKSLASH, true}},
+            {';', {KEY_SEMICOLON, false}}, {':', {KEY_SEMICOLON, true}},
+            {'\'', {KEY_APOSTROPHE, false}}, {'"', {KEY_APOSTROPHE, true}},
+            {',', {KEY_COMMA, false}}, {'<', {KEY_COMMA, true}},
+            {'.', {KEY_DOT, false}}, {'>', {KEY_DOT, true}},
+            {'/', {KEY_SLASH, false}}, {'?', {KEY_SLASH, true}},
+            {'`', {KEY_GRAVE, false}}, {'~', {KEY_GRAVE, true}},
+            {'/', {KEY_SLASH, false}}, {':', {KEY_SEMICOLON, true}},
+            {'!', {KEY_1, true}}, {'@', {KEY_2, true}}, {'#', {KEY_3, true}},
+            {'$', {KEY_4, true}}, {'%', {KEY_5, true}}, {'^', {KEY_6, true}},
+            {'&', {KEY_7, true}}, {'*', {KEY_8, true}}, {'(', {KEY_9, true}},
+            {')', {KEY_0, true}}, {'-', {KEY_MINUS, false}}, {'_', {KEY_MINUS, true}},
+            {'=', {KEY_EQUAL, false}}, {'+', {KEY_EQUAL, true}}, {'\\', {KEY_BACKSLASH, false}},
+            {'|', {KEY_BACKSLASH, true}}, {';', {KEY_SEMICOLON, false}}, {':', {KEY_SEMICOLON, true}},
+            {'\'', {KEY_APOSTROPHE, false}}, {'"', {KEY_APOSTROPHE, true}}, {',', {KEY_COMMA, false}},
+            {'<', {KEY_COMMA, true}}, {'.', {KEY_DOT, false}}, {'>', {KEY_DOT, true}},
+            {'`', {KEY_GRAVE, false}}, {'~', {KEY_GRAVE, true}}
+
+        };
+        
+        auto it = charMap.find(c);
+        if (it == charMap.end()) {
+            std::cerr << "Character '" << c << "' not mapped for Linux" << std::endl;
+            return;
+        }
+        
+        KeyMapping mapping = it->second;
+        
+        // Press shift if needed
+        if (mapping.needShift) {
+            holdKeyLinux(KEY_LEFTSHIFT);
+        }
+        
+        // Press the key
+        holdKeyLinux(mapping.keyCode);
+        std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
+        releaseKeyLinux(mapping.keyCode);
+        
+        // Release shift
+        if (mapping.needShift) {
+            releaseKeyLinux(KEY_LEFTSHIFT);
+        }
+    }
     
     // Convert Windows VK codes to evdev codes
     unsigned int toEvdevCode(unsigned int vkCode) {
@@ -484,7 +797,45 @@ private:
             {0x1B, KEY_ESC}, {0xA0, KEY_LEFTSHIFT}, {0xA1, KEY_RIGHTSHIFT},
             {0xA2, KEY_LEFTCTRL}, {0xA3, KEY_RIGHTCTRL},
             {0xA4, KEY_LEFTALT}, {0xA5, KEY_RIGHTALT},
-            {0xDB, KEY_LEFTBRACE}, {0xDD, KEY_RIGHTBRACE}
+            {0xDB, KEY_LEFTBRACE}, {0xDD, KEY_RIGHTBRACE}, {0xBF, KEY_SLASH}, {0xBA, KEY_SEMICOLON}, // QWERTY and AZERTY support
+            {0xBF, KEY_SLASH},      // /
+            {0xBA, KEY_SEMICOLON},  // ; or :
+            {0x31, KEY_1},          // 1
+            {0x32, KEY_2},          // 2
+            {0x33, KEY_3},          // 3
+            {0x34, KEY_4},          // 4
+            {0x35, KEY_5},          // 5
+            {0x36, KEY_6},          // 6
+            {0x37, KEY_7},          // 7
+            {0x38, KEY_8},          // 8
+            {0x39, KEY_9},          // 9
+            {0x30, KEY_0},          // 0
+            {0xBD, KEY_MINUS},      // - or _
+            {0xBB, KEY_EQUAL},      // = or +
+            {0xDC, KEY_BACKSLASH},  // \ or |
+            {0xDE, KEY_APOSTROPHE}, // ' or "
+            {0xBC, KEY_COMMA},      // , or <
+            {0xBE, KEY_DOT},        // . or >
+            {0xC0, KEY_GRAVE},      // ` or ~
+            // Navigation keys
+            {0x24, KEY_HOME}, {0x23, KEY_END}, {0x21, KEY_PAGEUP}, {0x22, KEY_PAGEDOWN},
+            // Numpad
+            {0x60, KEY_KP0}, {0x61, KEY_KP1}, {0x62, KEY_KP2}, {0x63, KEY_KP3},
+            {0x64, KEY_KP4}, {0x65, KEY_KP5}, {0x66, KEY_KP6}, {0x67, KEY_KP7},
+            {0x68, KEY_KP8}, {0x69, KEY_KP9},
+            {0x6A, KEY_KPASTERISK}, {0x6B, KEY_KPPLUS}, {0x6D, KEY_KPMINUS},
+            {0x6E, KEY_KPDOT}, {0x6F, KEY_KPSLASH},
+            // Lock keys
+            {0x14, KEY_CAPSLOCK}, {0x90, KEY_NUMLOCK}, {0x91, KEY_SCROLLLOCK},
+            // System keys
+            {0x2C, KEY_SYSRQ}, {0x13, KEY_PAUSE},
+            // Windows/Super key
+            {0x5B, KEY_LEFTMETA}, {0x5C, KEY_RIGHTMETA},
+            // Arrow keys (if not already there)
+            {0x25, KEY_LEFT}, {0x26, KEY_UP}, {0x27, KEY_RIGHT}, {0x28, KEY_DOWN},
+            // Backspace, Delete, Insert (if not already there)
+            {0x08, KEY_BACKSPACE}, {0x2E, KEY_DELETE}, {0x2D, KEY_INSERT},
+
         };
         
         if (vkToEvdev.count(vkCode)) {
@@ -513,19 +864,116 @@ private:
             {KEY_ESC, 0x1B}, {KEY_LEFTSHIFT, 0xA0}, {KEY_RIGHTSHIFT, 0xA1},
             {KEY_LEFTCTRL, 0xA2}, {KEY_RIGHTCTRL, 0xA3},
             {KEY_LEFTALT, 0xA4}, {KEY_RIGHTALT, 0xA5},
-            {KEY_LEFTBRACE, 0xDB}, {KEY_RIGHTBRACE, 0xDD}
+            {KEY_LEFTBRACE, 0xDB}, {KEY_RIGHTBRACE, 0xDD}, {KEY_SLASH, 0xBF}, {KEY_SEMICOLON, 0xBA},
+            {0xBF, KEY_SLASH},      // /
+            {0xBA, KEY_SEMICOLON},  // ; or :
+            {0x31, KEY_1},          // 1
+            {0x32, KEY_2},          // 2
+            {0x33, KEY_3},          // 3
+            {0x34, KEY_4},          // 4
+            {0x35, KEY_5},          // 5
+            {0x36, KEY_6},          // 6
+            {0x37, KEY_7},          // 7
+            {0x38, KEY_8},          // 8
+            {0x39, KEY_9},          // 9
+            {0x30, KEY_0},          // 0
+            {0xBD, KEY_MINUS},      // - or _
+            {0xBB, KEY_EQUAL},      // = or +
+            {0xDC, KEY_BACKSLASH},  // \ or |
+            {0xDE, KEY_APOSTROPHE}, // ' or "
+            {0xBC, KEY_COMMA},      // , or <
+            {0xBE, KEY_DOT},        // . or >
+            {0xC0, KEY_GRAVE},      // ` or ~
+            // Navigation keys
+            {KEY_HOME, 0x24}, {KEY_END, 0x23}, {KEY_PAGEUP, 0x21}, {KEY_PAGEDOWN, 0x22},
+            // Numpad
+            {KEY_KP0, 0x60}, {KEY_KP1, 0x61}, {KEY_KP2, 0x62}, {KEY_KP3, 0x63},
+            {KEY_KP4, 0x64}, {KEY_KP5, 0x65}, {KEY_KP6, 0x66}, {KEY_KP7, 0x67},
+            {KEY_KP8, 0x68}, {KEY_KP9, 0x69},
+            {KEY_KPASTERISK, 0x6A}, {KEY_KPPLUS, 0x6B}, {KEY_KPMINUS, 0x6D},
+            {KEY_KPDOT, 0x6E}, {KEY_KPSLASH, 0x6F},
+            // Lock keys
+            {KEY_CAPSLOCK, 0x14}, {KEY_NUMLOCK, 0x90}, {KEY_SCROLLLOCK, 0x91},
+            // System keys
+            {KEY_SYSRQ, 0x2C}, {KEY_PAUSE, 0x13},
+            // Windows/Super key
+            {KEY_LEFTMETA, 0x5B}, {KEY_RIGHTMETA, 0x5C},
+            // Arrow keys (if not already there)
+            {KEY_LEFT, 0x25}, {KEY_UP, 0x26}, {KEY_RIGHT, 0x27}, {KEY_DOWN, 0x28},
+            // Backspace, Delete, Insert (if not already there)
+            {KEY_BACKSPACE, 0x08}, {KEY_DELETE, 0x2E}, {KEY_INSERT, 0x2D},
+
         };
         
+
         if (evdevToVk.count(evdevCode)) {
             return evdevToVk[evdevCode];
         }
         return evdevCode;
     }
+
+    
+    Key getCurrentPressedKeyLinux(int timeout_ms) {
+        auto startTime = std::chrono::steady_clock::now();
+        
+        do {
+            unsigned int pressedKeyCode = 0;
+            bool keyFound = false;
+            
+            // Check for pressed keys in a scoped lock
+            {
+                std::lock_guard<std::mutex> lock(m_keyMutex);
+                
+                // Find the first pressed key
+                for (const auto& pair : m_keyStates) {
+                    if (pair.second) {
+                        pressedKeyCode = pair.first;
+                        keyFound = true;
+                        break;
+                    }
+                }
+            } // Lock is released here
+            
+            // If we found a pressed key, wait for it to be released
+            if (keyFound) {
+                bool released = false;
+                while (!released) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    
+                    // Check if key is still pressed
+                    std::lock_guard<std::mutex> lock(m_keyMutex);
+                    auto it = m_keyStates.find(pressedKeyCode);
+                    released = (it == m_keyStates.end() || !it->second);
+                }
+                
+                return static_cast<Key>(pressedKeyCode);
+            }
+            
+            if (timeout_ms == 0) {
+                break; // No wait, check once
+            }
+            
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            
+            if (timeout_ms > 0) {
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now() - startTime
+                ).count();
+                if (elapsed >= timeout_ms) {
+                    break;
+                }
+            }
+            
+        } while (timeout_ms != 0);
+        
+        return static_cast<Key>(0); // No key pressed
+    }
+
 #endif
 };
 
 #ifdef _WIN32
-CrossInput* CrossInput::s_instance = nullptr;
+inline CrossInput* CrossInput::s_instance = nullptr;
 #endif
 
-#endif // CROSS_INPUT_HPP
+#endif // INPCTRL_HPP
